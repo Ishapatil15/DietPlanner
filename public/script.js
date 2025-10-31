@@ -1,7 +1,7 @@
 /* script.js - Diet Planner frontend logic (improved) */
 
-// Base URL of backend API (change if your server runs elsewhere)
-const API_BASE = 'http://localhost:3000';
+// Base URL of backend API (READS from global variable, falls back to localhost for dev)
+const API_BASE = window.RENDER_API_URL || 'http://localhost:3000';
 
 /**
  * debugFetch: wrapper around fetch that reads raw text, attempts JSON parse,
@@ -9,14 +9,17 @@ const API_BASE = 'http://localhost:3000';
  */
 async function debugFetch(url, options = {}) {
     try {
-        const res = await fetch(url, options);
+        // Use API_BASE, which now holds the dynamic URL
+        const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`; 
+        
+        const res = await fetch(fullUrl, options);
         const raw = await res.text();
         let data = null;
         try {
             data = raw ? JSON.parse(raw) : null;
         } catch (e) {
             // not JSON
-            console.warn('debugFetch: non-JSON response from', url, '\nRaw:', raw);
+            console.warn('debugFetch: non-JSON response from', fullUrl, '\nRaw:', raw);
         }
         return { ok: res.ok, status: res.status, data, raw, headers: res.headers };
     } catch (err) {
@@ -36,6 +39,7 @@ async function savePlanToServer(payload) {
         return { ok: false, error: 'Not authenticated' };
     }
     try {
+        // API_BASE is now dynamic
         const result = await debugFetch(`${API_BASE}/save-plan`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
@@ -114,6 +118,7 @@ document.addEventListener('DOMContentLoaded', function() {
             output.textContent = 'Generating…';
 
             try {
+                // API_BASE is now dynamic
                 const res = await fetch(`${API_BASE}/ai/meal-plan`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
